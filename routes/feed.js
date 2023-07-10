@@ -12,5 +12,11 @@ router.post(
 );
 
 router.get("/post/:postId", feedController.getPost);
+router.put(
+  "/post/:postId",
+  body("title").trim().isLentgh({ min: 5 }),
+  body("content").trim().isLentgh({ min: 5 }),
+  feedController.updatePost
+);
 
 module.exports = router;
