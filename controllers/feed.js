@@ -2,20 +2,6 @@ const { validationResult } = require("express-validator/check");
 const Post = require("../models/post");
 
 exports.getPosts = (req, res, next) => {
-  res.status(200).json({
-    posts: [
-      {
-        title: "fitst titel",
-        content: "this a test for rest api",
-        careateAt: new Date(),
-        auther: {
-          name: "Saeed",
-        },
-        imageUrl: "/upload/1.png",
-      },
-    ],
-  });
-
   Post.find()
     .then((posts) => {
       if (!posts) {
@@ -33,6 +19,12 @@ exports.getPosts = (req, res, next) => {
       next(err);
     });
 };
+if (!req.file) {
+  const err = new Error("No image provided");
+  err.statusCode = 422;
+  throw err;
+}
+const imageUrl = req.file.path;
 
 exports.createPosts = (req, res, next) => {
   const errors = validationResult(req);
@@ -46,7 +38,7 @@ exports.createPosts = (req, res, next) => {
   const post = new Post({
     id: new Date().toISOString(),
     title: title,
-    imageUrl: "upload/1.png",
+    imageUrl: imageUrl,
     content: content,
     creator: { name: "Saeed Aliakbari" },
   });
