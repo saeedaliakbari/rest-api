@@ -1,10 +1,9 @@
 const path = require("path");
 const express = require("express");
 const bodyParser = require("body-parser");
-const multer = require("multer");
+const mongoose = require("mongoose");
+
 const feedRoutes = require("./routes/feed");
-const { query, validationResult } = require("express-validator");
-const { check } = require("express-validator");
 const app = express();
 
 app.use(bodyParser.json());
@@ -19,4 +18,13 @@ app.use((req, res, next) => {
   next();
 });
 app.use("/feed", feedRoutes);
-app.listen(8080);
+
+mongoose
+  .connect("mongodb://0.0.0.0:27017/shopping", { autoIndex: true })
+  .then((result) => {
+    console.log("Connect to mongoose");
+    app.listen(8080);
+  })
+  .catch((err) => {
+    console.log(err);
+  });
