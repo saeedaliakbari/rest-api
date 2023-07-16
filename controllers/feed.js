@@ -1,5 +1,8 @@
 const { validationResult, Result } = require("express-validator");
 const Post = require("../models/post");
+const User = require("../models/user");
+const { Schema } = require("mongoose");
+const post = require("../models/post");
 
 exports.getPosts = (req, res, next) => {
   Post.find().then((posts) => {
@@ -16,34 +19,37 @@ exports.getPosts = (req, res, next) => {
 };
 exports.createPosts = (req, res, next) => {
   const errors = validationResult(req);
-  // res.json({ error: errors.array() });
   if (!errors.isEmpty()) {
     const error = new Error("validation faild,entered data is incorrect");
     error.statusCode = 422;
     throw error;
   }
-  // if (!req.file) {
-  //   const error = new Error("no image provided ");
-  //   error.statusCode = 422;
-  //   throw error;
-  // }
   const imageUrl = req.body.imageUrl;
   const title = req.body.title;
   const content = req.body.content;
-  const name = req.body.name;
+  const userId = req.body.userId;
+  let creator;
   const post = new Post({
     title: title,
     content: content,
     imageUrl: imageUrl,
-    creator: { name: name },
+    creator: userId,
   });
   post
     .save()
     .then((result) => {
-      console.log(result);
+      return User.findById(userId);
+    })
+    .then((user) => {
+      creator = user;
+      user.posts.push(post);
+      return user.save();
+    })
+    .then((result) => {
       res.status(201).json({
         message: "Post added",
-        post: result,
+        post: post,
+        creator: { _id: creator._id, name: creator.name },
       });
     })
     .catch((err) => {
@@ -81,9 +87,9 @@ exports.getPost = (req, res, next) => {
 exports.updatePost = (req, res, next) => {
   const postId = req.params.postId;
   const title = req.body.title;
-  const content = req.body.content;
-  const name = req.body.name;
   const imageUrl = req.body.imageUrl;
+  const content = req.body.content;
+  const userId = req.body.userId;
   Post.findById(postId)
     .then((post) => {
       if (!post) {
@@ -91,9 +97,13 @@ exports.updatePost = (req, res, next) => {
         error.statusCode = 404;
         throw error;
       }
+      if (post.creator.toString() !== userId) {
+        const error = new Error("Not Authorized");
+        error.statusCode = 403;
+        throw error;
+      }
       post.title = title;
       post.content = content;
-      post.creator = { name: name };
       post.imageUrl = imageUrl;
       return post.save();
     })
@@ -109,6 +119,7 @@ exports.updatePost = (req, res, next) => {
 };
 exports.deletePost = (req, res, next) => {
   const postId = req.params.postId;
+  const userId = req.body.userId;
   Post.findById(postId)
     .then((post) => {
       //check user create this post
@@ -117,10 +128,21 @@ exports.deletePost = (req, res, next) => {
         error.statusCode = 404;
         throw error;
       }
+      if (post.creator.toString() !== userId) {
+        const error = new Error("Not Authorized");
+        error.statusCode = 403;
+        throw error;
+      }
       return Post.findByIdAndRemove(postId);
     })
     .then((result) => {
-      console.log(result);
+      return User.findById(userId);
+    })
+    .then((user) => {
+      user.posts.pull(postId);
+      return user.save();
+    })
+    .then((result) => {
       res.status(200).json({ message: "Delete post success" });
     })
     .catch((err) => {
