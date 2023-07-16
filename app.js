@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const feedRoutes = require("./routes/feed");
+const authRoutes = require("./routes/auth");
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use("/feed", feedRoutes);
+app.use("/auth", authRoutes);
 
 //error handler
 app.use((error, req, res, next) => {
@@ -53,8 +55,6 @@ app.use((error, req, res, next) => {
   const message = error.message;
   res.status(error.statusCode).json({ message: message });
 });
-
-
 
 mongoose
   .connect("mongodb://0.0.0.0:27017/blog", { autoIndex: true })
