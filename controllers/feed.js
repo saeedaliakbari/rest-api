@@ -17,7 +17,7 @@ exports.getPosts = (req, res, next) => {
       });
   });
 };
-exports.createPosts = (req, res, next) => {
+exports.createPosts = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error("validation faild,entered data is incorrect");
@@ -35,29 +35,22 @@ exports.createPosts = (req, res, next) => {
     imageUrl: imageUrl,
     creator: userId,
   });
-  post
-    .save()
-    .then((result) => {
-      return User.findById(userId);
-    })
-    .then((user) => {
-      creator = user;
-      user.posts.push(post);
-      return user.save();
-    })
-    .then((result) => {
-      res.status(201).json({
-        message: "Post added",
-        post: post,
-        creator: { _id: creator._id, name: creator.name },
-      });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
+  try {
+    await post.save();
+    const user = await User.findById(userId);
+    await user.posts.push(post);
+    await user.save();
+    res.status(201).json({
+      message: "Post added",
+      post: post,
+      creator: { _id: user._id, name: user.name },
     });
+  } catch (error) {
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    next(error);
+  }
 };
 
 exports.getPost = (req, res, next) => {
