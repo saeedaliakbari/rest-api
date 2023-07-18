@@ -34,16 +34,28 @@ exports.createPosts = async (req, res, next) => {
     imageUrl: imageUrl,
     creator: userId,
   });
-  try {
-    await post.save();
-    const user = await User.findById(userId);
-    user.posts.push(post);
-    await user.save();
-    io.getIO().emit("posts", { action: "create", post: post });
-    res.status(201).json({
-      message: "Post added",
-      post: post,
-      creator: { _id: user._id, name: user.name },
+  post
+    .save()
+    .then((result) => {
+      return User.findById(userId);
+    })
+    .then((user) => {
+      creator = user;
+      user.posts.push(post);
+      return user.save();
+    })
+    .then((result) => {
+      res.status(201).json({
+        message: "Post added",
+        post: post,
+        creator: { _id: creator._id, name: creator.name },
+      });
+    })
+    .catch((err) => {
+      if (!err.statusCode) {
+        err.statusCode = 500;
+      }
+      next(err);
     });
   } catch (error) {
     if (!error.statusCode) {
