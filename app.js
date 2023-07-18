@@ -60,7 +60,16 @@ mongoose
   .connect("mongodb://0.0.0.0:27017/blog", { autoIndex: true })
   .then((result) => {
     console.log("Connect to mongoose");
-    app.listen(8080);
+    const server = app.listen(8080);
+    const io = require("./socket").init(server);
+    io.on("connection", (socket) => {
+      console.log("client connected");
+
+      socket.on("Test", (msg) => {
+        console.log(msg);
+        socket.emit("Test", "Send Test " + msg.content);
+      });
+    });
   })
   .catch((err) => {
     console.log(err);
